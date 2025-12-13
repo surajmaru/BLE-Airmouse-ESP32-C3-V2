@@ -1,0 +1,152 @@
+#include <Wire.h>
+#include <BleMouse.h>
+#include <MPU6050.h>
+
+BleMouse bleMouse("SURAJ AIRMOUSE");
+MPU6050 mpu;
+
+// ---------- BUTTON PINS ----------
+#define LEFT_BUTTON  3
+#define RIGHT_BUTTON 2
+
+// ---------- GYRO SETTINGS ----------
+float gyroBiasX = 0, gyroBiasY = 0;
+bool calibrated = false;
+
+float smoothing   = 0.82;
+float sensitivity = 0.20;
+int deadzone      = 1;
+
+// ---------- SCROLL SETTINGS ----------
+unsigned long lastScrollTime = 0;
+int scrollDelay = 120;
+
+// ---------- CLICK DETECTION ----------
+unsigned long leftPressStart  = 0;
+unsigned long rightPressStart = 0;
+bool leftHeld  = false;
+bool rightHeld = false;
+int clickThreshold = 180;
+
+// ---------- CALIBRATION ----------
+void calibrateGyro() {
+  long sumGX = 0, sumGY = 0;
+
+  for (int i = 0; i < 500; i++) {
+    int16_t ax, ay, az, gx, gy, gz;
+    mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+    sumGX += gx;
+    sumGY += gy;
+    delay(3);
+  }
+
+  gyroBiasX = sumGX / 500.0;
+  gyroBiasY = sumGY / 500.0;
+  calibrated = true;
+  Serial.println("Gyro calibrated");
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  // -------- I2C for ESP32-C3 --------
+  Wire.begin(5, 4);  // SDA, SCL
+
+  mpu.initialize();
+  if (!mpu.testConnection()) {
+    Serial.println("MPU6050 FAILED");
+  } else {
+    Serial.println("MPU6050 OK");
+  }
+
+  pinMode(LEFT_BUTTON, INPUT_PULLUP);
+  pinMode(RIGHT_BUTTON, INPUT_PULLUP);
+
+  bleMouse.begin();
+  delay(1500);
+
+  calibrateGyro();
+}
+
+// ---------- MAIN LOOP ----------
+void loop() {
+  if (!bleMouse.isConnected() || !calibrated) return;
+  unsigned long now = millis();
+
+  // -------- LEFT BUTTON --------
+  if (digitalRead(LEFT_BUTTON) == LOW) {
+    if (leftPressStart == 0) {
+      leftPressStart = now;
+      leftHeld = false;
+    }
+    if (!leftHeld && now - leftPressStart >= clickThreshold)
+      leftHeld = true;
+
+    if (leftHeld && now - lastScrollTime >= scrollDelay) {
+      bleMouse.move(0, 0, -1);  // scroll down
+      lastScrollTime = now;
+      return;
+    }
+  } 
+  else if (leftPressStart != 0) {
+    if (!leftHeld && now - leftPressStart < clickThreshold)
+      bleMouse.click(MOUSE_LEFT);
+
+    leftPressStart = 0;
+    leftHeld = false;
+  }
+
+  // -------- RIGHT BUTTON --------
+  if (digitalRead(RIGHT_BUTTON) == LOW) {
+    if (rightPressStart == 0) {
+      rightPressStart = now;
+      rightHeld = false;
+    }
+    if (!rightHeld && now - rightPressStart >= clickThreshold)
+      rightHeld = true;
+
+    if (rightHeld && now - lastScrollTime >= scrollDelay) {
+      bleMouse.move(0, 0, 1);  // scroll up
+      lastScrollTime = now;
+      return;
+    }
+  } 
+  else if (rightPressStart != 0) {
+    if (!rightHeld && now - rightPressStart < clickThreshold)
+      bleMouse.click(MOUSE_RIGHT);
+
+    rightPressStart = 0;
+    rightHeld = false;
+  }
+
+  // -------- MPU GYRO MOUSE --------
+  int16_t ax, ay, az, gx, gy, gz;
+  mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+
+  float rotX = (gx - gyroBiasX) / 131.0;
+  float rotY = (gy - gyroBiasY) / 131.0;
+
+  static float fX = 0, fY = 0;
+  fX = fX * smoothing + rotX * (1 - smoothing);
+  fY = fY * smoothing + rotY * (1 - smoothing);
+
+  float moveXf = (fX * sensitivity);
+  float moveYf = (fY * sensitivity);
+
+  if (abs(moveXf) < deadzone) moveXf = 0;
+  if (abs(moveYf) < deadzone) moveYf = 0;
+
+  if (moveXf != 0 && moveYf != 0) {
+    float factor = 1.12;
+    moveXf *= factor;
+    moveYf *= factor;
+  }
+
+  int moveX = (int)moveXf;
+  int moveY = (int)moveYf;
+
+  if (moveX || moveY)
+    bleMouse.move(moveX, moveY);
+
+  delay(5);
+}
