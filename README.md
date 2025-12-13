@@ -9,7 +9,7 @@
 - very easy to use and compact.
 - easy to make you own!
 
-# Component used
+# Components used
 - ESP32 C3
 - MPU 6050
 - TP4056
