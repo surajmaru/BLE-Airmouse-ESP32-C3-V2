@@ -9,6 +9,13 @@
 - very easy to use and compact.
 - easy to make you own!
 
+# Component used
+- ESP32 C3
+- MPU 6050
+- TP4056
+- 2 PUSH BUTTONS
+- 1s Li-ion Battery
+
 # Schematics
 <img width="1904" height="875" alt="Screenshot 2025-12-13 171910" src="https://github.com/user-attachments/assets/3a1dcb29-0f51-432c-bf17-fde488cb1661" />
 
