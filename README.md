@@ -13,28 +13,27 @@
 <img width="1904" height="875" alt="Screenshot 2025-12-13 171910" src="https://github.com/user-attachments/assets/3a1dcb29-0f51-432c-bf17-fde488cb1661" />
 
 # Connections
-| Battery (1S Li-ion) 3.7V| Boost Converter 5V |
-|--------------------|-------------------------|
-|    +               |  +                      |
-|    -               |  -                      |
 
-
-| Boost Converter 5V | ESP32 S3 Pin |
-|---------------------|-------------|
-|    +                |  VCC        |
-|    GND              |  GND        |
+| Battery    | ESP32 C3 Pin |
+|------------|--------------|
+|    +       |   VCC        |
+|    GND     |   GND        |
  
 
-| ESP32 S3 Pin | MPU6050 |
+| ESP32 C3 Pin | MPU6050 |
 |--------------|---------|
-| 5V(VCC)      |  VCC    |
+| 3.3V         |  VCC    |
 | GND          |  GND    |
-| 10           |  SCL    |
-| 11           |  SDA    |
+| 4            |  SCL    |
+| 5            |  SDA    |
 
 
 | ESP32 S3 Pin | Button |
 |--------------|--------|
 | GND          |  GND   |
-| 4            |  BTN 1 |
-| 5            |  BTN 2 |
+| 2            |  BTN 1 |
+| 3            |  BTN 2 |
+
+# The code is given above 👆.
+
+# Watch my Youtube video:-
